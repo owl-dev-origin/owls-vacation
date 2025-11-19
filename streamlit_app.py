@@ -10,7 +10,7 @@ from matplotlib import rcParams
 from datetime import datetime
 import matplotlib.font_manager as fm
 
-# 데이터
+# 데이터 불러오기
 use_data_url = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSoSeQ-ieKryWqCXKqMNZ4GZunnBPGnC_Ici4YDomIRk-huOBDCzeQ8wp0SkLkxGO4x_rRwoKmU48hk/pub?gid=0&single=true&output=csv'
 df_a = pd.read_csv(use_data_url)
 df_a["기안일"] = pd.to_datetime(df_a["기안일"]).dt.date
