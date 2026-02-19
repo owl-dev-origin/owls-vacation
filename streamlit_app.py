@@ -1,8 +1,4 @@
 import streamlit as st
-
-# st.title("🎈Owls vacation")
-
-import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib
@@ -23,30 +19,52 @@ base_data = {
 df_b = pd.DataFrame(base_data)
 df_b["기준일"] = pd.to_datetime(df_b["기준일"]).dt.date
 
-# 업데이트일 기준으로 입사일 기준 재정렬 함수 추가
+# 업데이트일 기준으로 입사일 기준 재정렬 + 총 소진량을 리셋하는 함수 추가
 today = date.today()
 
 def next_renewal_date(base_date):
-    # 올해 기준일 생성
     candidate = date(today.year, base_date.month, base_date.day)
+    crossed = False
 
-    # 이미 지났으면 내년으로
     if candidate < today:
         candidate = date(today.year + 1, base_date.month, base_date.day)
+        crossed = True
 
-    return candidate
+    return candidate, crossed
     
 # 적용
-df_b['정렬용_월일'] = df_b["기준일"].apply(next_renewal_date)
+df_b[['정렬용_월일', '갱신지남여부']] = df_b['기준일'].apply(
+    lambda x: pd.Series(next_renewal_date(x))
+)
 
 # 1. 입사일 기준 정렬
 ordered_names = df_b.sort_values("정렬용_월일")["이름"].tolist()
 latest_df = df_a.sort_values("기안일").groupby("이름").tail(1)
 latest_df = latest_df.set_index("이름").reindex(ordered_names).reset_index()
+latest_df = latest_df.dropna(subset=["총 소진량"])
 
-# ordered_names = df_b.sort_values("기준일")["이름"].tolist()
-# latest_df = df_a.sort_values("기안일").groupby("이름").tail(1)
-# latest_df = latest_df.set_index("이름").reindex(ordered_names).reset_index()
+current_year = datetime.now().year
+# # 기준일에서 월, 일을 가져와 현재 연도 + 1년으로 갱신일 생성
+# def make_renewal_date(date):
+#     # 월, 일 유지, 연도는 현재년도 + 1
+#     return datetime(current_year + 1, date.month, date.day).strftime('%Y-%m-%d')
+# def make_renewal_date(base_date):
+#     candidate = datetime(current_year, base_date.month, base_date.day)
+
+#     if candidate.date() < datetime.today().date():
+#         candidate = datetime(current_year + 1, base_date.month, base_date.day)
+
+#     return candidate
+
+merged_df = latest_df.merge(df_b, on="이름")
+# 갱신일 기준 사용량 초기화
+merged_df.loc[merged_df['갱신지남여부'], '총 소진량'] = 0
+
+renewal_dates = merged_df["정렬용_월일"].apply(lambda x: x.strftime('%Y-%m-%d'))
+
+# renewal_dates = merged_df["정렬용_월일"].apply(make_renewal_date)
+# renewal_dates = renewal_dates.apply(lambda x: x.strftime('%Y-%m-%d'))
+# hire_dates = latest_df.merge(df_b, on="이름")["기준일"].dt.strftime('%Y-%m-%d')
 
 
 # 2. 가로 막대그래프 시각화
@@ -66,28 +84,10 @@ rcParams['axes.unicode_minus'] = False
 fig, ax = plt.subplots(figsize=(15, 7))
 # plt.subplots_adjust(left=0.05, right=0.95, bottom=0.05, top=0.95)
 
-names = latest_df["이름"]
-used = latest_df["총 소진량"]
-remaining = latest_df["남은연차수"]
-total = latest_df["보유연차수"]
-
-current_year = datetime.now().year
-# # 기준일에서 월, 일을 가져와 현재 연도 + 1년으로 갱신일 생성
-# def make_renewal_date(date):
-#     # 월, 일 유지, 연도는 현재년도 + 1
-#     return datetime(current_year + 1, date.month, date.day).strftime('%Y-%m-%d')
-def make_renewal_date(base_date):
-    candidate = datetime(current_year, base_date.month, base_date.day)
-
-    if candidate.date() < datetime.today().date():
-        candidate = datetime(current_year + 1, base_date.month, base_date.day)
-
-    return candidate
-
-merged_df = latest_df.merge(df_b, on="이름")
-renewal_dates = merged_df["기준일"].apply(make_renewal_date)
-renewal_dates = renewal_dates.apply(lambda x: x.strftime('%Y-%m-%d'))
-# hire_dates = latest_df.merge(df_b, on="이름")["기준일"].dt.strftime('%Y-%m-%d')
+names = merged_df["이름"]
+used = merged_df["총 소진량"]
+remaining = merged_df["남은연차수"]
+total = merged_df["보유연차수"]
 
 bar_height = 0.5
 
@@ -102,7 +102,8 @@ for i, (u, r) in enumerate(zip(used, remaining)):
     ax.text(u/2, i, f"{u:.2f}", va='center', ha='center', color='black', fontsize=15)  # 사용 연차
     ax.text(u + r/2, i, f"{r:.2f}", va='center', ha='center', color='black', fontsize=15)  # 남은 연차
 
-ax.invert_yaxis()  # 가장 많은 연차가 위로
+# 갱신일 빠른 순서가 위로 오도록 뒤집음
+ax.invert_yaxis()
 
 # 그래프 디테일 설정
 ax.spines['top'].set_visible(False)
