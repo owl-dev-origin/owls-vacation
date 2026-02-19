@@ -7,7 +7,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib
 from matplotlib import rcParams
-from datetime import datetime
+from datetime import datetime, date
 import matplotlib.font_manager as fm
 
 # 데이터 불러오기
