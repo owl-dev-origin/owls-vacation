@@ -23,6 +23,21 @@ base_data = {
 df_b = pd.DataFrame(base_data)
 df_b["기준일"] = pd.to_datetime(df_b["기준일"]).dt.date
 
+# 업데이트일 기준으로 입사일 기준 재정렬 함수 추가
+today = date.today()
+
+def next_renewal_date(base_date):
+    # 올해 기준일 생성
+    candidate = date(today.year, base_date.month, base_date.day)
+
+    # 이미 지났으면 내년으로
+    if candidate < today:
+        candidate = date(today.year + 1, base_date.month, base_date.day)
+
+    return candidate
+# 적용
+df_b['정렬용_월일'] = df_b["기준일"].apply(next_renewal_date)
+
 # 1. 입사일 기준 정렬
 df_b['정렬용_월일'] = df_b["기준일"].apply(lambda x: (x.month, x.day))
 ordered_names = df_b.sort_values("정렬용_월일")["이름"].tolist()
@@ -57,10 +72,18 @@ remaining = latest_df["남은연차수"]
 total = latest_df["보유연차수"]
 
 current_year = datetime.now().year
-# 기준일에서 월, 일을 가져와 현재 연도 + 1년으로 갱신일 생성
-def make_renewal_date(date):
-    # 월, 일 유지, 연도는 현재년도 + 1
-    return datetime(current_year + 1, date.month, date.day).strftime('%Y-%m-%d')
+# # 기준일에서 월, 일을 가져와 현재 연도 + 1년으로 갱신일 생성
+# def make_renewal_date(date):
+#     # 월, 일 유지, 연도는 현재년도 + 1
+#     return datetime(current_year + 1, date.month, date.day).strftime('%Y-%m-%d')
+def make_renewal_date(base_date):
+    candidate = datetime(current_year, base_date.month, base_date.day)
+
+    if candidate.date() < datetime.today().date():
+        candidate = datetime(current_year + 1, base_date.month, base_date.day)
+
+    return candidate
+
 merged_df = latest_df.merge(df_b, on="이름")
 renewal_dates = merged_df["기준일"].apply(make_renewal_date)
 # hire_dates = latest_df.merge(df_b, on="이름")["기준일"].dt.strftime('%Y-%m-%d')
