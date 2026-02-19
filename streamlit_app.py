@@ -35,11 +35,11 @@ def next_renewal_date(base_date):
         candidate = date(today.year + 1, base_date.month, base_date.day)
 
     return candidate
+    
 # 적용
 df_b['정렬용_월일'] = df_b["기준일"].apply(next_renewal_date)
 
 # 1. 입사일 기준 정렬
-df_b['정렬용_월일'] = df_b["기준일"].apply(lambda x: (x.month, x.day))
 ordered_names = df_b.sort_values("정렬용_월일")["이름"].tolist()
 latest_df = df_a.sort_values("기안일").groupby("이름").tail(1)
 latest_df = latest_df.set_index("이름").reindex(ordered_names).reset_index()
@@ -86,6 +86,7 @@ def make_renewal_date(base_date):
 
 merged_df = latest_df.merge(df_b, on="이름")
 renewal_dates = merged_df["기준일"].apply(make_renewal_date)
+renewal_dates = renewal_dates.apply(lambda x: x.strftime('%Y-%m-%d'))
 # hire_dates = latest_df.merge(df_b, on="이름")["기준일"].dt.strftime('%Y-%m-%d')
 
 bar_height = 0.5
