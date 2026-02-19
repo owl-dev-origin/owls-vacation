@@ -44,28 +44,12 @@ latest_df = latest_df.set_index("이름").reindex(ordered_names).reset_index()
 latest_df = latest_df.dropna(subset=["총 소진량"])
 
 current_year = datetime.now().year
-# # 기준일에서 월, 일을 가져와 현재 연도 + 1년으로 갱신일 생성
-# def make_renewal_date(date):
-#     # 월, 일 유지, 연도는 현재년도 + 1
-#     return datetime(current_year + 1, date.month, date.day).strftime('%Y-%m-%d')
-# def make_renewal_date(base_date):
-#     candidate = datetime(current_year, base_date.month, base_date.day)
-
-#     if candidate.date() < datetime.today().date():
-#         candidate = datetime(current_year + 1, base_date.month, base_date.day)
-
-#     return candidate
 
 merged_df = latest_df.merge(df_b, on="이름")
 # 갱신일 기준 사용량 초기화
 merged_df.loc[merged_df['갱신지남여부'], '총 소진량'] = 0
 
 renewal_dates = merged_df["정렬용_월일"].apply(lambda x: x.strftime('%Y-%m-%d'))
-
-# renewal_dates = merged_df["정렬용_월일"].apply(make_renewal_date)
-# renewal_dates = renewal_dates.apply(lambda x: x.strftime('%Y-%m-%d'))
-# hire_dates = latest_df.merge(df_b, on="이름")["기준일"].dt.strftime('%Y-%m-%d')
-
 
 # 2. 가로 막대그래프 시각화
 # st.subheader("구성원별 연차 사용/남은 연차 현황")
@@ -74,10 +58,6 @@ st.markdown("연차 갱신일은 입사일을 기준으로 매년 동일한 월,
 st.markdown("연차 갱신일이 빠른 순서대로 정렬되어 있습니다.")
 
 # # 한글 폰트 설정 (Pretendard)
-# font_path = "/System/Library/Fonts/Supplemental/AppleGothic.ttf"  # Pretendard 경로
-# font_prop = fm.FontProperties(fname=font_path)
-# print(font_prop.get_name())
-
 rcParams['font.family'] = 'NanumGothic' #font_prop.get_name()
 rcParams['axes.unicode_minus'] = False
 
@@ -114,7 +94,6 @@ ax2 = ax.twinx()
 ax2.set_ylim(ax.get_ylim())  # 왼쪽 y축 범위와 맞추기
 ax2.set_yticks(range(len(names)))  # y축 위치
 ax2.set_yticklabels(renewal_dates)  # y축 라벨을 입사일로
-# ax2.set_ylabel("갱신일")
 ax2.tick_params(axis='y', which='major', labelsize=20)
 ax2.spines['top'].set_visible(False)
 
